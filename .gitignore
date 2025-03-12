@@ -1,6 +1,9 @@
 # Large data files
 *.parquet
 
+#drawio
+*.drawio.bkp
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
