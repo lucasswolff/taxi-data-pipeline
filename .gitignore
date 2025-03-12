@@ -1,7 +1,10 @@
+# Venv
+venv/
+
 # Large data files
 *.parquet
 
-#drawio
+# Drawio
 *.drawio.bkp
 
 # Byte-compiled / optimized / DLL files
