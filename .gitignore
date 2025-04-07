@@ -1,6 +1,9 @@
 # Venv
 venv/
 
+# Notes
+notes.txt
+
 # Large data files
 *.parquet
 
