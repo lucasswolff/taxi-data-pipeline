@@ -4,8 +4,41 @@ from pyspark.sql.functions import input_file_name, regexp_extract, unix_timestam
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from pyspark.sql import functions as F 
 
+def read_lockup_tables(spark, folder_path):
+    # load payment_type df
+    schema_payment_type = StructType([
+        StructField('payment_type', IntegerType()),
+        StructField('payment_type_desc', StringType()),
+    ])
 
-def transform_df(spark, df):
+    path = folder_path + '/payment_type.csv'
+    df_payment_type = spark.read.csv(path, schema=schema_payment_type, header=True)
+    
+    
+    # load ratecode df
+    schema_ratecode = StructType([
+        StructField('RatecodeID', IntegerType()),
+        StructField('RatecodeDesc', StringType()),
+    ])
+
+    path = folder_path + '/ratecode.csv'
+    df_ratecode = spark.read.csv(path, schema=schema_ratecode, header=True)
+
+
+    # load taxi zone
+    schema_taxi_zone = StructType([
+        StructField('LocationID', IntegerType()),
+        StructField('Borough', StringType()),
+        StructField('Zone', StringType()),
+        StructField('service_zone', StringType()),
+    ])
+
+    path = folder_path + '/taxi_zone.csv'
+    df_taxi_zone = spark.read.csv(path, schema=schema_taxi_zone, header=True)
+
+    return df_payment_type, df_ratecode, df_taxi_zone
+
+def add_year_month_file(df):
     # add file year and month columns 
 
     # Add filename column
@@ -17,57 +50,19 @@ def transform_df(spark, df):
 
     df = df.drop("source_file")
     
+    return df
+
+def correct_total_amount(df):
     # correct total amount column
     df = df.withColumn(
         'total_amount',
         col('fare_amount') + col('extra') + col('mta_tax') + col('tip_amount') + 
         col('tolls_amount') + col('improvement_surcharge') + col('congestion_surcharge') + col('Airport_fee')
     )
-    # replace null and 0 passenger_count with 1
-    df = df.withColumn(
-                'passenger_count',
-                when((col('passenger_count').isNull()) | (col('passenger_count') == 0), 1)
-                .otherwise(col('passenger_count'))
-    )
-    # removes both rows when there's a reversal
+    
+    return df
 
-    # finds both reversal rows
-    # count = 2 and sum == 0 (e.g. 10 + (-10) = 0 -- -10 is the reversal of 10)
-    df_reversal = df\
-                .groupBy('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance')\
-                .agg(
-                    F.sum('total_amount').alias('total_amount_sum'),
-                    F.count('*').alias('count'))\
-                .filter((col('total_amount_sum') == 0) & (col('count') == 2))
-            
-    # antijoin removes from df everything that's df_reversal           
-    df = df.join(
-                    df_reversal.select('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'),
-                    on = ['VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'],
-                    how = 'anti'  
-    )
-    # filter out negatives
-    df = df.filter(
-                            (col('trip_distance') >= 0) &
-                            (col('fare_amount') >= 0) &
-                            (col('total_amount') >= 0)
-    )
-
-    # filter out when both trip_distance and total_amount is zero
-    df = df.filter(
-                            (col('trip_distance') > 0) |
-                            (col('total_amount') > 0)
-    )
-    # remove duplicated data based on the bellow keys
-    # select the one with the high total_amount. In some duplicated cases the tip or other fees was missing in one of the rows
-    key_cols = ['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
-            'trip_distance', 'fare_amount', 'PULocationID', 'DOLocationID']
-
-    window_dup = Window.partitionBy(key_cols).orderBy(df.total_amount.desc())
-
-    df = df.withColumn('row_number', row_number().over(window_dup))
-
-    df = df.filter('row_number == 1').drop('row_number')
+def correct_timestamp(df):
     # corrects year data quality issue by assigning the year of the file 
     # we need to be carefull here, because some trips might happen during new year's eve (who spends the turn of the year in a Taxi??)
 
@@ -86,7 +81,6 @@ def transform_df(spark, df):
         .otherwise(expr("make_timestamp(file_year, month(tpep_pickup_datetime), day(tpep_pickup_datetime), hour(tpep_pickup_datetime), minute(tpep_pickup_datetime), second(tpep_pickup_datetime))"))
     )
         
-        
     # dropoff datetime
     df = df.withColumn(
         'tpep_dropoff_datetime',
@@ -101,6 +95,87 @@ def transform_df(spark, df):
             ,col('tpep_dropoff_datetime')) 
         .otherwise(expr("make_timestamp(file_year, month(tpep_dropoff_datetime), day(tpep_dropoff_datetime), hour(tpep_dropoff_datetime), minute(tpep_dropoff_datetime), second(tpep_dropoff_datetime))"))
     )
+    
+    # if dropoff ealier than pickup, replaces dropoff by pickup
+    df = df.withColumn(
+        'tpep_dropoff_datetime',
+        when(col('tpep_dropoff_datetime') < col('tpep_pickup_datetime'), col('tpep_pickup_datetime'))
+        .otherwise(col('tpep_dropoff_datetime'))
+    )
+    
+    return df
+
+def add_pickup_dropoff_year_month_day(df):
+    
+    df = df\
+            .withColumn('pickup_year',year(col('tpep_pickup_datetime')))\
+            .withColumn('pickup_month',month(col('tpep_pickup_datetime')))\
+            .withColumn('pickup_day',day(col('tpep_pickup_datetime')))\
+            .withColumn('dropoff_year',year(col('tpep_dropoff_datetime')))\
+            .withColumn('dropoff_month',month(col('tpep_dropoff_datetime')))\
+            .withColumn('dropoff_day',day(col('tpep_dropoff_datetime')))
+    
+    return df
+
+def filter_reversal(df):
+    # removes both rows when there's a reversal
+
+    # finds both reversal rows
+    # count = 2 and sum == 0 (e.g. 10 + (-10) = 0 -- -10 is the reversal of 10)
+    df_reversal = df\
+                .groupBy('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance')\
+                .agg(
+                    F.sum('total_amount').alias('total_amount_sum'),
+                    F.count('*').alias('count'))\
+                .filter((col('total_amount_sum') == 0) & (col('count') == 2))
+            
+    # antijoin removes from df everything that's df_reversal           
+    df = df.join(
+                    df_reversal.select('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'),
+                    on = ['VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'],
+                    how = 'anti'  
+    )
+    
+    return df
+
+def filter_zero_negatives(df):
+    # filter out negatives
+    df = df.filter(
+                (col('trip_distance') >= 0) &
+                (col('fare_amount') >= 0) &
+                (col('total_amount') >= 0)
+    )
+
+    # filter out when both trip_distance and total_amount is zero
+    df = df.filter(
+                (col('trip_distance') > 0) |
+                (col('total_amount') > 0)
+    )  
+    
+    return df
+
+def filter_duplicates(df):
+    # remove duplicated data based on the bellow keys
+    # select the one with the high total_amount. In some duplicated cases the tip or other fees was missing in one of the rows
+    key_cols = ['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
+            'trip_distance', 'fare_amount', 'PULocationID', 'DOLocationID']
+
+    window_dup = Window.partitionBy(key_cols).orderBy(df.total_amount.desc())
+
+    df = df.withColumn('row_number', row_number().over(window_dup))
+
+    df = df.filter('row_number == 1').drop('row_number') 
+    
+    return df
+
+def replace_null_and_zero(df):
+    # replace null and 0 passenger_count with 1
+    df = df.withColumn(
+            'passenger_count',
+            when((col('passenger_count').isNull()) | (col('passenger_count') == 0), 1)
+            .otherwise(col('passenger_count'))
+    )
+
     #replace null store_and_fwd_flag
     df = df.withColumn(
         'store_and_fwd_flag',
@@ -111,33 +186,7 @@ def transform_df(spark, df):
         'RatecodeID',
         coalesce(col('RatecodeID'), lit(99))
     )
-
-    # load ratecode df
-    schema_ratecode = StructType([
-        StructField('RatecodeID', IntegerType()),
-        StructField('RatecodeDesc', StringType()),
-    ])
-
-    df_ratecode = spark.read.csv('../../lockup_tables/ratecode.csv', schema=schema_ratecode, header=True)
-
-    # join with ratecode df and bring Rate code Description
-    df = df.join(df_ratecode, on = 'RatecodeID', how = 'left')
-    #replace null payment_type 
-    df = df.withColumn(
-        'payment_type',
-        coalesce(col('payment_type'), lit(5))
-    )
-
-    # load payment_type df
-    schema_payment_type = StructType([
-        StructField('payment_type', IntegerType()),
-        StructField('payment_type_desc', StringType()),
-    ])
-
-    df_payment_type = spark.read.csv('../../lockup_tables/payment_type.csv', schema=schema_payment_type, header=True)
-
-    # join with ratecode df and bring Rate code Description
-    df = df.join(df_payment_type, on = 'payment_type', how = 'left')
+    
     # create file timestamp based on file year and month
     df = df.withColumn(
         'file_timestamp',
@@ -145,23 +194,19 @@ def transform_df(spark, df):
             concat_ws("-", col("file_year"), lpad(col("file_month"), 2, "0"), lit("01"))
             )
     )
-
+    
     # replaces null datetime with the file_timestamp 
     df = df.withColumn(
         'tpep_pickup_datetime',
         coalesce(col('tpep_pickup_datetime'), col('file_timestamp'))
     )
-
     df = df.withColumn(
         'tpep_dropoff_datetime',
         coalesce(col('tpep_dropoff_datetime'), col('file_timestamp'))
     )
-    df = df.withColumn(
-        'tpep_dropoff_datetime',
-        when(col('tpep_dropoff_datetime') < col('tpep_pickup_datetime'), col('tpep_pickup_datetime'))
-        .otherwise(col('tpep_dropoff_datetime'))
-    )
-    ## replace nulls
+    df = df.drop('file_timestamp')
+    
+    # replace null locations
     df = df.withColumn(
         'PULocationID',
         coalesce(col('PULocationID'), lit(264))
@@ -171,16 +216,20 @@ def transform_df(spark, df):
         'DOLocationID',
         coalesce(col('DOLocationID'), lit(264))
     )
+    
+    return df
 
-    # loads taxi zone
-    schema_taxi_zone = StructType([
-        StructField('LocationID', IntegerType()),
-        StructField('Borough', StringType()),
-        StructField('Zone', StringType()),
-        StructField('service_zone', StringType()),
-    ])
+def joins(df, df_ratecode, df_payment_type, df_taxi_zone):
+    # join with ratecode df and bring Rate code Description
+    df = df.join(df_ratecode, on = 'RatecodeID', how = 'left')
+    #replace null payment_type 
+    df = df.withColumn(
+        'payment_type',
+        coalesce(col('payment_type'), lit(5))
+    )
 
-    df_taxi_zone = spark.read.csv('../../lockup_tables/taxi_zone.csv', schema=schema_taxi_zone, header=True)
+    # join with ratecode df and bring Rate code Description
+    df = df.join(df_payment_type, on = 'payment_type', how = 'left')
 
     # join df with taxi zones for Pickup
     df = df\
@@ -202,7 +251,11 @@ def transform_df(spark, df):
                         .withColumnRenamed('Zone', 'DO_Zone') \
                         .withColumnRenamed('service_zone', 'DO_service_zone')
                         
-    df = df.drop('LocationID')
+    df = df.drop('LocationID')  
+    
+    return df
+
+def create_measures(df):
     # creates trip duration column
     df = df.withColumn('trip_duration_min', 
                                     (unix_timestamp('tpep_dropoff_datetime') - unix_timestamp('tpep_pickup_datetime'))/60)
@@ -230,6 +283,9 @@ def transform_df(spark, df):
         'fare_amount_per_min', 
         coalesce(col('fare_amount')/col('trip_duration_min'), lit(0))
     )
+    return df
+
+def flag_outliers(df):
     # creates the trip outlier flag
     # trip outlier --> discrepancy between the time and the distance (e.g. to many miles in a few minutes - the trip can't be that fast)
 
@@ -252,7 +308,10 @@ def transform_df(spark, df):
         .when((col('fare_amount_per_min') == 0) & (col('fare_amount_per_min') == 0), True)
         .otherwise(False)
     )
-    df = df.drop('file_timestamp')
+    
+    return df
+
+def rename_reorder_df(df):
     # rename columns to use snake_case and reorder dataframe
 
     rename_reorder_dict = {
@@ -301,9 +360,24 @@ def transform_df(spark, df):
     # reorder 
     ordered_columns = list(rename_reorder_dict.values())
     df = df.select(*ordered_columns)
-    
     return df
 
+def transform_df(df, df_payment_type, df_ratecode, df_taxi_zone):
+
+    df = add_year_month_file(df) # adds file year and month
+    df = correct_total_amount(df) #corrects total amount column
+    df = correct_timestamp(df) #if timestamp is wrong, replaces if file year month
+    df = add_pickup_dropoff_year_month_day(df) #add year, month and day for PU and DO
+    df = filter_reversal(df) #filter both rows when reversal
+    df = filter_zero_negatives(df) #filter zero and negatives when suitable
+    df = filter_duplicates(df) #filter duplicated records
+    df = replace_null_and_zero(df) #replace nulls and zeros
+    df = joins(df, df_ratecode, df_payment_type, df_taxi_zone) #join with lockup tables
+    df = create_measures(df) #create measures like miles_per_hour, amount_per_min
+    df = flag_outliers(df) #flag outliers based on criteria
+    df = rename_reorder_df(df) #rename columns and reorder them
+
+    return df
 
 def main():
     # create spark session
@@ -316,9 +390,12 @@ def main():
     folder_path = "../../sample_data/raw/" ### mudar isso quando for subir na AWS
     df_yellow_raw = spark.read.parquet(folder_path + 'yellow/yellow_tripdata_2024-*.parquet') ### mudar isso quando for subir na AWS
     
+    folder_path_lockup = "../../lockup_tables/" #mudar o source das lockup quando subir na aws
+    df_payment_type, df_ratecode, df_taxi_zone = read_lockup_tables(spark, folder_path_lockup)
+    
     # transform df
     print('Initiating dataframe transformation...')
-    df_yellow = transform_df(spark, df_yellow_raw) #mudar o source das lockup quando subir na aws
+    df_yellow = transform_df(df_yellow_raw, df_payment_type, df_ratecode, df_taxi_zone) 
     
     # upload into curated layer
     print('Saving files...')
