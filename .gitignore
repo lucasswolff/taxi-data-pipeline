@@ -4,14 +4,13 @@ venv/
 # Notes
 notes.txt
 
-# Large data files
+# spark data related files
 *.parquet
+*.crc
+_SUCCESS
 
 # Drawio
 *.drawio.bkp
-
-# sample data
-sample_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
