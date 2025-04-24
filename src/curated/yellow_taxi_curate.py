@@ -99,10 +99,15 @@ def correct_total_amount(df):
     # correct total amount column
     df = df.withColumn(
         'total_amount',
-        col('fare_amount') + col('extra') + col('mta_tax') + col('tip_amount') + 
-        col('tolls_amount') + col('improvement_surcharge') + col('congestion_surcharge') + col('Airport_fee')
+        coalesce(col('fare_amount'), lit(0)) +
+        coalesce(col('extra'), lit(0)) +
+        coalesce(col('mta_tax'), lit(0)) +
+        coalesce(col('tip_amount'), lit(0)) +
+        coalesce(col('tolls_amount'), lit(0)) +
+        coalesce(col('improvement_surcharge'), lit(0)) +
+        coalesce(col('congestion_surcharge'), lit(0)) +
+        coalesce(col('Airport_fee'), lit(0))
     )
-    
     return df
 
 def correct_timestamp(df):
