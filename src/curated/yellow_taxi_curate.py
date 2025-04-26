@@ -7,6 +7,7 @@ from pyspark.sql.functions import input_file_name, regexp_extract, unix_timestam
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from pyspark.sql import functions as F 
 
+
 def get_run_mode_files(run_mode, months, folder_path):
     
     # from function parameters, get files names for spark df 
@@ -67,6 +68,15 @@ def read_lockup_tables(spark, folder_path):
     path = folder_path + '/ratecode.csv'
     df_ratecode = spark.read.csv(path, schema=schema_ratecode, header=True)
 
+    # load trip_type df
+    schema_trip_type = StructType([
+        StructField('trip_type', IntegerType()),
+        StructField('trip_type_desc', StringType()),
+    ])
+
+    path = folder_path + '/trip_type.csv'
+    df_trip_type = spark.read.csv(path, schema=schema_trip_type, header=True)
+
 
     # load taxi zone
     schema_taxi_zone = StructType([
@@ -79,7 +89,15 @@ def read_lockup_tables(spark, folder_path):
     path = folder_path + '/taxi_zone.csv'
     df_taxi_zone = spark.read.csv(path, schema=schema_taxi_zone, header=True)
 
-    return df_payment_type, df_ratecode, df_taxi_zone
+    return df_payment_type, df_ratecode, df_trip_type, df_taxi_zone
+
+def add_columns(df):
+    # add columns with defaut values to be consistent with green taxi
+    df = df\
+            .withColumn('ehail_fee', lit(None).cast(StringType()))\
+            .withColumn('trip_type', lit(3))
+    
+    return df
 
 def add_year_month_file(df):
     # add file year and month columns 
@@ -95,6 +113,11 @@ def add_year_month_file(df):
     
     return df
 
+def rename_timestamp(df):
+    df = df.withColumnRenamed('tpep_pickup_datetime', 'pickup_datetime').withColumnRenamed('tpep_dropoff_datetime', 'dropoff_datetime')
+
+    return df
+
 def correct_total_amount(df):
     # correct total amount column
     df = df.withColumn(
@@ -106,7 +129,8 @@ def correct_total_amount(df):
         coalesce(col('tolls_amount'), lit(0)) +
         coalesce(col('improvement_surcharge'), lit(0)) +
         coalesce(col('congestion_surcharge'), lit(0)) +
-        coalesce(col('Airport_fee'), lit(0))
+        coalesce(col('Airport_fee'), lit(0)) + 
+        coalesce(col('ehail_fee'), lit(0))
     )
     return df
 
@@ -116,39 +140,39 @@ def correct_timestamp(df):
 
     # pickup datetime
     df = df.withColumn(
-        'tpep_pickup_datetime',
-        when(year('tpep_pickup_datetime') == col('file_year'), col('tpep_pickup_datetime'))
+        'pickup_datetime',
+        when(year('pickup_datetime') == col('file_year'), col('pickup_datetime'))
         .when( # new's year eve (e.g. file 2024, check if trips in in 2023-24)
-            (year('tpep_pickup_datetime') == col('file_year') - 1) & (month('tpep_pickup_datetime') == 12) & (day('tpep_pickup_datetime') == 31) &
-            (year('tpep_dropoff_datetime') == col('file_year')) & (month('tpep_dropoff_datetime') == 1) & (day('tpep_dropoff_datetime') == 1)
-            ,col('tpep_pickup_datetime'))
+            (year('pickup_datetime') == col('file_year') - 1) & (month('pickup_datetime') == 12) & (day('pickup_datetime') == 31) &
+            (year('dropoff_datetime') == col('file_year')) & (month('dropoff_datetime') == 1) & (day('dropoff_datetime') == 1)
+            ,col('pickup_datetime'))
         .when( # new's year eve (e.g. file 2024, check if trips in in 2024-25)
-            (year('tpep_pickup_datetime') == col('file_year')) & (month('tpep_pickup_datetime') == 12) & (day('tpep_pickup_datetime') == 31) &
-            (year('tpep_dropoff_datetime') == col('file_year') + 1) & (month('tpep_dropoff_datetime') == 1) & (day('tpep_dropoff_datetime') == 1)
-            ,col('tpep_pickup_datetime')) 
-        .otherwise(expr("make_timestamp(file_year, month(tpep_pickup_datetime), day(tpep_pickup_datetime), hour(tpep_pickup_datetime), minute(tpep_pickup_datetime), second(tpep_pickup_datetime))"))
+            (year('pickup_datetime') == col('file_year')) & (month('pickup_datetime') == 12) & (day('pickup_datetime') == 31) &
+            (year('dropoff_datetime') == col('file_year') + 1) & (month('dropoff_datetime') == 1) & (day('dropoff_datetime') == 1)
+            ,col('pickup_datetime')) 
+        .otherwise(expr("make_timestamp(file_year, month(pickup_datetime), day(pickup_datetime), hour(pickup_datetime), minute(pickup_datetime), second(pickup_datetime))"))
     )
         
     # dropoff datetime
     df = df.withColumn(
-        'tpep_dropoff_datetime',
-        when(year('tpep_dropoff_datetime') == col('file_year'), col('tpep_dropoff_datetime'))
+        'dropoff_datetime',
+        when(year('dropoff_datetime') == col('file_year'), col('dropoff_datetime'))
         .when( # new's year eve (e.g. file 2024, check if trips in in 2023-24)
-            (year('tpep_pickup_datetime') == col('file_year') - 1) & (month('tpep_pickup_datetime') == 12) & (day('tpep_pickup_datetime') == 31) &
-            (year('tpep_dropoff_datetime') == col('file_year')) & (month('tpep_dropoff_datetime') == 1) & (day('tpep_dropoff_datetime') == 1)
-            ,col('tpep_dropoff_datetime'))
+            (year('pickup_datetime') == col('file_year') - 1) & (month('pickup_datetime') == 12) & (day('pickup_datetime') == 31) &
+            (year('dropoff_datetime') == col('file_year')) & (month('dropoff_datetime') == 1) & (day('dropoff_datetime') == 1)
+            ,col('dropoff_datetime'))
         .when( # new's year eve (e.g. file 2024, check if trips in in 2024-25)
-            (year('tpep_pickup_datetime') == col('file_year')) & (month('tpep_pickup_datetime') == 12) & (day('tpep_pickup_datetime') == 31) &
-            (year('tpep_dropoff_datetime') == col('file_year') + 1) & (month('tpep_dropoff_datetime') == 1) & (day('tpep_dropoff_datetime') == 1)
-            ,col('tpep_dropoff_datetime')) 
-        .otherwise(expr("make_timestamp(file_year, month(tpep_dropoff_datetime), day(tpep_dropoff_datetime), hour(tpep_dropoff_datetime), minute(tpep_dropoff_datetime), second(tpep_dropoff_datetime))"))
+            (year('pickup_datetime') == col('file_year')) & (month('pickup_datetime') == 12) & (day('pickup_datetime') == 31) &
+            (year('dropoff_datetime') == col('file_year') + 1) & (month('dropoff_datetime') == 1) & (day('dropoff_datetime') == 1)
+            ,col('dropoff_datetime')) 
+        .otherwise(expr("make_timestamp(file_year, month(dropoff_datetime), day(dropoff_datetime), hour(dropoff_datetime), minute(dropoff_datetime), second(dropoff_datetime))"))
     )
     
     # if dropoff ealier than pickup, replaces dropoff by pickup
     df = df.withColumn(
-        'tpep_dropoff_datetime',
-        when(col('tpep_dropoff_datetime') < col('tpep_pickup_datetime'), col('tpep_pickup_datetime'))
-        .otherwise(col('tpep_dropoff_datetime'))
+        'dropoff_datetime',
+        when(col('dropoff_datetime') < col('pickup_datetime'), col('pickup_datetime'))
+        .otherwise(col('dropoff_datetime'))
     )
     
     return df
@@ -156,12 +180,12 @@ def correct_timestamp(df):
 def add_pickup_dropoff_year_month_day(df):
     
     df = df\
-            .withColumn('pickup_year',year(col('tpep_pickup_datetime')))\
-            .withColumn('pickup_month',month(col('tpep_pickup_datetime')))\
-            .withColumn('pickup_day',day(col('tpep_pickup_datetime')))\
-            .withColumn('dropoff_year',year(col('tpep_dropoff_datetime')))\
-            .withColumn('dropoff_month',month(col('tpep_dropoff_datetime')))\
-            .withColumn('dropoff_day',day(col('tpep_dropoff_datetime')))
+            .withColumn('pickup_year',year(col('pickup_datetime')))\
+            .withColumn('pickup_month',month(col('pickup_datetime')))\
+            .withColumn('pickup_day',day(col('pickup_datetime')))\
+            .withColumn('dropoff_year',year(col('dropoff_datetime')))\
+            .withColumn('dropoff_month',month(col('dropoff_datetime')))\
+            .withColumn('dropoff_day',day(col('dropoff_datetime')))
     
     return df
 
@@ -171,7 +195,7 @@ def filter_reversal(df):
     # finds both reversal rows
     # count = 2 and sum == 0 (e.g. 10 + (-10) = 0 -- -10 is the reversal of 10)
     df_reversal = df\
-                .groupBy('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance')\
+                .groupBy('VendorID','pickup_datetime','dropoff_datetime','PULocationID','DOLocationID','trip_distance')\
                 .agg(
                     F.sum('total_amount').alias('total_amount_sum'),
                     F.count('*').alias('count'))\
@@ -179,8 +203,8 @@ def filter_reversal(df):
             
     # antijoin removes from df everything that's df_reversal           
     df = df.join(
-                    df_reversal.select('VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'),
-                    on = ['VendorID','tpep_pickup_datetime','tpep_dropoff_datetime','PULocationID','DOLocationID','trip_distance'],
+                    df_reversal.select('VendorID','pickup_datetime','dropoff_datetime','PULocationID','DOLocationID','trip_distance'),
+                    on = ['VendorID','pickup_datetime','dropoff_datetime','PULocationID','DOLocationID','trip_distance'],
                     how = 'anti'  
     )
     
@@ -205,7 +229,7 @@ def filter_zero_negatives(df):
 def filter_duplicates(df):
     # remove duplicated data based on the bellow keys
     # select the one with the high total_amount. In some duplicated cases the tip or other fees was missing in one of the rows
-    key_cols = ['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
+    key_cols = ['VendorID', 'pickup_datetime', 'dropoff_datetime',
             'trip_distance', 'fare_amount', 'PULocationID', 'DOLocationID']
 
     window_dup = Window.partitionBy(key_cols).orderBy(df.total_amount.desc())
@@ -223,17 +247,16 @@ def replace_null_and_zero(df):
             when((col('passenger_count').isNull()) | (col('passenger_count') == 0), 1)
             .otherwise(col('passenger_count'))
     )
-
-    #replace null store_and_fwd_flag
-    df = df.withColumn(
-        'store_and_fwd_flag',
-        coalesce(col('store_and_fwd_flag'), lit('N'))
-    )
-    #replace null RatecodeID
-    df = df.withColumn(
-        'RatecodeID',
-        coalesce(col('RatecodeID'), lit(99))
-    )
+    
+    # replace null locations, trip_type, RatecodeID, store_and_fwd_flag, payment_type
+    df = df\
+        .withColumn('PULocationID', coalesce(col('PULocationID'), lit(264)))\
+        .withColumn('DOLocationID',coalesce(col('DOLocationID'), lit(264)))\
+        .withColumn('trip_type',coalesce(col('trip_type'), lit(3)))\
+        .withColumn('RatecodeID',coalesce(col('RatecodeID'), lit(99)))\
+        .withColumn('store_and_fwd_flag',coalesce(col('store_and_fwd_flag'), lit('N')))\
+        .withColumn('payment_type',coalesce(col('payment_type'), lit(5)))
+    
     
     # create file timestamp based on file year and month
     df = df.withColumn(
@@ -245,39 +268,26 @@ def replace_null_and_zero(df):
     
     # replaces null datetime with the file_timestamp 
     df = df.withColumn(
-        'tpep_pickup_datetime',
-        coalesce(col('tpep_pickup_datetime'), col('file_timestamp'))
+        'pickup_datetime',
+        coalesce(col('pickup_datetime'), col('file_timestamp'))
     )
     df = df.withColumn(
-        'tpep_dropoff_datetime',
-        coalesce(col('tpep_dropoff_datetime'), col('file_timestamp'))
+        'dropoff_datetime',
+        coalesce(col('dropoff_datetime'), col('file_timestamp'))
     )
     df = df.drop('file_timestamp')
-    
-    # replace null locations
-    df = df.withColumn(
-        'PULocationID',
-        coalesce(col('PULocationID'), lit(264))
-    )
-
-    df = df.withColumn(
-        'DOLocationID',
-        coalesce(col('DOLocationID'), lit(264))
-    )
-    
+        
     return df
 
-def joins(df, df_ratecode, df_payment_type, df_taxi_zone):
-    # join with ratecode df and bring Rate code Description
+def joins(df, df_ratecode, df_payment_type, df_trip_type, df_taxi_zone):
+    # join with ratecode df and bring Rate Description
     df = df.join(df_ratecode, on = 'RatecodeID', how = 'left')
-    #replace null payment_type 
-    df = df.withColumn(
-        'payment_type',
-        coalesce(col('payment_type'), lit(5))
-    )
 
-    # join with ratecode df and bring Rate code Description
+    # join with payment_type df and bring payment type Description
     df = df.join(df_payment_type, on = 'payment_type', how = 'left')
+
+    # join with trip_type df and bring trip type Description
+    df = df.join(df_trip_type, on = 'trip_type', how = 'left')
 
     # join df with taxi zones for Pickup
     df = df\
@@ -306,7 +316,7 @@ def joins(df, df_ratecode, df_payment_type, df_taxi_zone):
 def create_measures(df):
     # creates trip duration column
     df = df.withColumn('trip_duration_min', 
-                                    (unix_timestamp('tpep_dropoff_datetime') - unix_timestamp('tpep_pickup_datetime'))/60)
+                                    (unix_timestamp('dropoff_datetime') - unix_timestamp('pickup_datetime'))/60)
 
     # miles per minute
     df = df.withColumn(
@@ -366,11 +376,11 @@ def rename_reorder_df(df):
         "file_year": "file_year",
         "file_month": "file_month",
         "VendorID": "vendor_id",
-        "tpep_pickup_datetime": "tpep_pickup_datetime",
+        "pickup_datetime": "pickup_datetime",
         "pickup_year": "pickup_year",
         "pickup_month": "pickup_month",
         "pickup_day": "pickup_day",
-        "tpep_dropoff_datetime": "tpep_dropoff_datetime",
+        "dropoff_datetime": "dropoff_datetime",
         "dropoff_year": "dropoff_year",
         "dropoff_month": "dropoff_month",
         "dropoff_day": "dropoff_day",
@@ -397,6 +407,7 @@ def rename_reorder_df(df):
         "improvement_surcharge": "improvement_surcharge",
         "congestion_surcharge": "congestion_surcharge",
         "Airport_fee": "airport_fee",
+        'ehail_fee': 'ehail_fee',
         "total_amount": "total_amount",
         "trip_duration_min": "trip_duration_min",
         "miles_per_minute": "miles_per_minute",
@@ -416,9 +427,10 @@ def rename_reorder_df(df):
     df = df.select(*ordered_columns)
     return df
 
-def transform_df(df, df_payment_type, df_ratecode, df_taxi_zone):
+def transform_df(df, df_payment_type, df_ratecode, df_trip_type, df_taxi_zone):
 
     df = add_year_month_file(df) # adds file year and month
+    df = rename_timestamp(df)
     df = correct_total_amount(df) #corrects total amount column
     df = correct_timestamp(df) #if timestamp is wrong, replaces if file year month
     df = add_pickup_dropoff_year_month_day(df) #add year, month and day for PU and DO
@@ -426,7 +438,7 @@ def transform_df(df, df_payment_type, df_ratecode, df_taxi_zone):
     df = filter_zero_negatives(df) #filter zero and negatives when suitable
     df = filter_duplicates(df) #filter duplicated records
     df = replace_null_and_zero(df) #replace nulls and zeros
-    df = joins(df, df_ratecode, df_payment_type, df_taxi_zone) #join with lockup tables
+    df = joins(df, df_ratecode, df_payment_type, df_trip_type, df_taxi_zone) #join with lockup tables
     df = create_measures(df) #create measures like miles_per_hour, amount_per_min
     df = flag_outliers(df) #flag outliers based on criteria
     df = rename_reorder_df(df) #rename columns and reorder them
@@ -474,15 +486,18 @@ def main(run_mode, months):
     raw_folder_path = "sample_data/raw/yellow/" ### mudar isso quando for subir na AWS
     
     # get file path based on run parameters
-    file_path = get_run_mode_files(run_mode, months, raw_folder_path)
-    df_yellow_raw = spark.read.parquet(*file_path) ### mudar isso quando for subir na AWS
+    file_path = get_run_mode_files(run_mode, months, raw_folder_path) ### mudar isso quando for subir na AWS
+    df_yellow_raw = spark.read.parquet(*file_path) 
+    
   
     folder_path_lockup = "lockup_tables/" #mudar o source das lockup quando subir na aws
-    df_payment_type, df_ratecode, df_taxi_zone = read_lockup_tables(spark, folder_path_lockup)
+    df_payment_type, df_ratecode, df_trip_type, df_taxi_zone = read_lockup_tables(spark, folder_path_lockup)
     
     #### transform df
     print('Initiating dataframe transformation...')
-    df_yellow = transform_df(df_yellow_raw, df_payment_type, df_ratecode, df_taxi_zone) 
+    
+    df_yellow = add_columns(df_yellow_raw) # add columns with defaut values to be consistent with green taxi
+    df_yellow = transform_df(df_yellow, df_payment_type, df_ratecode, df_trip_type, df_taxi_zone) 
     
     #### upload into curated layer
     print('Saving files...')
@@ -545,7 +560,7 @@ if __name__ == '__main__':
                 print('If past_months provide the number of months (e.g. 3). If specific_month provide yyyymm (e.g. 202404)')
                 sys.exit(1)
     
-    # user didn't provide parameters
+    # user didn't provide parameters - use past 3 months as default
     else:
         run_mode = 'past_months'
         months = 3
