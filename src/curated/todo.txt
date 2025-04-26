@@ -1,4 +1,3 @@
-refactor the code to be modular -- create classes (ver na historia do chat como fazer)
 create etl for green (remember to add Airport_fee = null)
 create tests
-
+write readme for curated and raw transformations
