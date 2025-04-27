@@ -4,7 +4,7 @@ import shutil
 from pyspark.sql import Window
 from pyspark.sql.functions import col, when, year, month, day, expr, to_timestamp, concat_ws, lpad, coalesce
 from pyspark.sql.functions import input_file_name, regexp_extract, unix_timestamp, row_number, lit
-from pyspark.sql.types import StringType
+from pyspark.sql.types import DoubleType
 from pyspark.sql import functions as F 
 
 class TransformerBase:
@@ -28,6 +28,8 @@ class TransformerBase:
     
     def add_year_month_file(self, df):
         # add file year and month columns 
+        
+        #print(df)
 
         # Add filename column
         df = df.withColumn("source_file", input_file_name())
@@ -354,12 +356,17 @@ class TransformerYellowGreen:
     def make_yellow_consistent(self, df):
         # add columns with defaut values to be consistent with green taxi
         df = df\
-                .withColumn('ehail_fee', lit(None).cast(StringType()))\
+                .withColumn('ehail_fee', lit(None).cast(DoubleType()))\
                 .withColumn('trip_type', lit(3))
         
         df = df.withColumnRenamed('tpep_pickup_datetime', 'pickup_datetime').withColumnRenamed('tpep_dropoff_datetime', 'dropoff_datetime')
         
         return df
     
-    # def make_green_consistent(self, df):
-        # add airport fee
+    def make_green_consistent(self, df):
+        # add columns with defaut values to be consistent with yellow taxi
+        df = df.withColumn('Airport_fee',  lit(None).cast(DoubleType()))
+        
+        df = df.withColumnRenamed('lpep_pickup_datetime', 'pickup_datetime').withColumnRenamed('lpep_dropoff_datetime', 'dropoff_datetime')
+        
+        return df
