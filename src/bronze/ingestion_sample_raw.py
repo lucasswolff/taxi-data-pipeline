@@ -21,7 +21,7 @@ def main():
     base_file_path = 'sample_data/raw/'  
 
     vehicles = ['yellow', 'green', 'fhv', 'fhvhv']
-    years = ['2024','2025']
+    years = ['2024']
     months = [f'{i:02}' for i in range(1, 13)] # 01, 02, ... 12
 
     for vehicle in vehicles:
