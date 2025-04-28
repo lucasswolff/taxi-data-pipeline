@@ -1,13 +1,13 @@
-# From files and api to Raw (bronze)
+# From files and api to bronze
 **AWS Lambda**
 Data will be loaded into s3 in the as-is format (parquet and json*)
 *or convert into parquet to reduce storage cost
 
-# From Raw to Curated (silver)
+# From bronze to silver
 **Pyspark in AWS EMR**
 Data will be cleaned, deduplicated and filtered. It will be stored in apache iceberg.
 
-# From Curated to Analytics (gold): 
+# From silver to gold: 
 **dbt**
 From iceberg, create business logic and metric, and store the data in redshift for querying and dashboards
 

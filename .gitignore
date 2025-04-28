@@ -4,10 +4,8 @@ venv/
 # Notes
 notes.txt
 
-# spark data related files
+# Large data files
 *.parquet
-*.crc
-_SUCCESS
 
 # Drawio
 *.drawio.bkp
