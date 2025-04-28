@@ -9,7 +9,7 @@ Plus, the project serves as a guide on how to structure an end-to-end solution l
 
 The bellow diagram ilustrates the Data Architecture.
 
-![Project Structure](Architecture Diagram.png)
+![Project Structure](architecture_diagram.png)
 
 Following the Medallion Architecture, the project is organized into these layers:
 
