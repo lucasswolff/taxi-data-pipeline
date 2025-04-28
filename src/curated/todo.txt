@@ -1,7 +1,7 @@
-create etl for green (remember to add Airport_fee = null)
+write readme for curated and raw transformations
 create tests
     column data type
     renaming is correct
     columns are present
     logic tests (removed duplicated, reversals, negatives, etc)
-write readme for curated and raw transformations
+
