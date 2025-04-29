@@ -1,4 +1,3 @@
-write readme for curated and raw transformations
 create tests
     column data type
     renaming is correct

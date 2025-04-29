@@ -34,6 +34,7 @@ AWS CloudWatch and Great expectations (TBC)
 
 # PROJECT STRUCTURE
 
+```
 src/
  └── curated/
      ├── jobs/        # Spark jobs
@@ -47,3 +48,4 @@ lockup_tables/        # Reference tables (e.g., payment types, rate codes)
 notebooks/            # Jupyter Notebooks used for data exploration
 orchestration/        # WIP
 infrastructure/       # WIP
+```
