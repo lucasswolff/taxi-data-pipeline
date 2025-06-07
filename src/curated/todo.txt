@@ -1,6 +1,5 @@
 create tests
-    column data type
-    renaming is correct
     columns are present
+    column data type
     logic tests (removed duplicated, reversals, negatives, etc)
-
+    usar essa documentacao: https://spark.apache.org/docs/latest/api/python/getting_started/testing_pyspark.html
