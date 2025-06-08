@@ -32,4 +32,6 @@ expected_data = [{"name": "John D.", "age": 30},
 expected_df = spark_test.createDataFrame(expected_data)
 
 assertDataFrameEqual(transformed_df, expected_df)
+assert 'name1' in transformed_df.columns, "Missing 'name1'"
+
 print("Test passed: DataFrames are equal.")
