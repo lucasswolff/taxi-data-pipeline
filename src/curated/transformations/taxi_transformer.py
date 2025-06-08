@@ -172,6 +172,20 @@ class TransformerBase:
                 .otherwise(col('passenger_count'))
         )
         
+        # replace null charges with zero
+        df = df\
+            .withColumn('trip_distance', coalesce(col('trip_distance'), lit(0)))\
+            .withColumn('fare_amount', coalesce(col('fare_amount'), lit(0)))\
+            .withColumn('extra', coalesce(col('extra'), lit(0)))\
+            .withColumn('mta_tax', coalesce(col('mta_tax'), lit(0)))\
+            .withColumn('tip_amount', coalesce(col('tip_amount'), lit(0)))\
+            .withColumn('tolls_amount', coalesce(col('tolls_amount'), lit(0)))\
+            .withColumn('improvement_surcharge', coalesce(col('improvement_surcharge'), lit(0)))\
+            .withColumn('congestion_surcharge', coalesce(col('congestion_surcharge'), lit(0)))\
+            .withColumn('Airport_fee', coalesce(col('Airport_fee'), lit(0)))\
+            .withColumn('ehail_fee', coalesce(col('ehail_fee'), lit(0)))\
+                
+                
         # replace null locations, trip_type, RatecodeID, store_and_fwd_flag, payment_type
         df = df\
             .withColumn('PULocationID', coalesce(col('PULocationID'), lit(264)))\
