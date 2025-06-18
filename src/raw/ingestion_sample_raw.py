@@ -20,8 +20,9 @@ def main():
     base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/'
     base_file_path = 'sample_data/raw/'  
 
-    vehicles = ['yellow', 'green', 'fhv', 'fhvhv']
-    years = ['2024','2025']
+    #vehicles = ['yellow', 'green', 'fhv', 'fhvhv']
+    vehicles = ['yellow', 'green']
+    years = ['2024']
     months = [f'{i:02}' for i in range(1, 13)] # 01, 02, ... 12
 
     for vehicle in vehicles:

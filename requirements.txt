@@ -1,2 +1,3 @@
-requests==2.32.3
-pysoark==3.5.5
+requests>=2.32.4
+pyspark==4.0.0
+pytest==8.4.0

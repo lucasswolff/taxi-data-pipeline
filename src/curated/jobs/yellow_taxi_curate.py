@@ -8,10 +8,10 @@ from curated.utils.read_lockup_tables import ReadLockup
 from curated.transformations.transform_run_mode import TransformMode
 
 def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path):
-    #### create spark session
+    #### CREATE SPARK
     spark = create_spark_session(app_name="curated_layer")
     
-    #### read parquet files
+    #### READ FILES
     print('Reading files...')
     
     taxi = 'yellow'
@@ -21,7 +21,7 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     lockup_reader = ReadLockup()
     df_payment_type, df_ratecode, df_trip_type, df_taxi_zone = lockup_reader.read_lockup_tables(spark, lockup_folder_path)
     
-    #### transform df
+    #### TRANSFORM
     print('Initiating dataframe transformation...')
     
     transformer_yellow = TransformerYellowGreen()
@@ -30,10 +30,12 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     transformer = TransformerBase()
     df_yellow = transformer.transform_df(df_yellow, df_payment_type, df_ratecode, df_trip_type, df_taxi_zone) 
     
+
+    #### TEST 
     run_tests(df_yellow)
     print('All tests passed!')
     
-    #### upload into curated layer
+    #### SAVE FILES
     print('Saving files...')
     
     # use df_yellow.coalesce(2).write when in AWS
