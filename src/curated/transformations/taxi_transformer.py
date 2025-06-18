@@ -28,8 +28,6 @@ class TransformerBase:
     
     def add_year_month_file(self, df):
         # add file year and month columns 
-        
-        #print(df)
 
         # Add filename column
         df = df.withColumn("source_file", input_file_name())
@@ -258,8 +256,8 @@ class TransformerBase:
 
         # miles per minute
         df = df.withColumn(
-            'miles_per_minute', 
-            coalesce(col('trip_distance')/col('trip_duration_min'), lit(0))
+            "miles_per_minute",
+            F.expr("try_divide(trip_distance, trip_duration_min)")
         )
 
         # miles per hour
@@ -271,13 +269,13 @@ class TransformerBase:
         # fare amount per mile
         df = df.withColumn(
             'fare_amount_per_mile', 
-            coalesce(col('fare_amount')/col('trip_distance'), lit(0))
+            F.expr("try_divide(fare_amount, trip_distance)")
         )
 
         # fare amount per minute
         df = df.withColumn(
             'fare_amount_per_min', 
-            coalesce(col('fare_amount')/col('trip_duration_min'), lit(0))
+            F.expr("try_divide(fare_amount, trip_duration_min)")
         )
         return df
 
