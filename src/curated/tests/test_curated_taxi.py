@@ -73,7 +73,11 @@ def check_data_types(df):
 def check_null(df):
     print('Testing for nulls')
     
-    not_nullable_columns_list = [ "file_year", "file_month", "vendor_id", "pickup_datetime", "pickup_year", "pickup_month", "pickup_day", "dropoff_datetime", "dropoff_year", "dropoff_month", "dropoff_day", "pu_location_id", "pu_borough", "pu_zone", "pu_service_zone", "do_location_id", "do_borough", "do_zone", "do_service_zone", "ratecode_id", "ratecode_desc", "payment_type", "payment_type_desc", "store_and_fwd_flag", "passenger_count", "trip_distance", "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", "improvement_surcharge", "congestion_surcharge", "airport_fee", 'ehail_fee', "total_amount", "trip_duration_min", "miles_per_minute", "miles_per_hour", "trip_outlier_flag", "fare_amount_per_mile", "fare_amount_per_min", "fare_amount_outlier_flag"]
+    not_nullable_columns_list = [ "file_year", "file_month", "vendor_id", "pickup_datetime", "pickup_year", "pickup_month", "pickup_day",
+                                  "dropoff_datetime", "dropoff_year", "dropoff_month", "dropoff_day", "pu_location_id", "pu_borough", "pu_zone", "pu_service_zone", 
+                                  "do_location_id", "do_borough", "do_zone", "do_service_zone", "ratecode_id", "ratecode_desc", "payment_type", "payment_type_desc", 
+                                  "store_and_fwd_flag", "passenger_count", "trip_distance", "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", 
+                                  "improvement_surcharge", "congestion_surcharge", "airport_fee", 'ehail_fee', "total_amount"]
     
     null_counts = df.select([
         sum(col(c).isNull().cast("int")).alias(c) for c in not_nullable_columns_list
