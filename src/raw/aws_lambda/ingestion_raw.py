@@ -1,18 +1,14 @@
-import requests
-import boto3
-import os
 from download_upload_s3 import download_and_upload_to_s3
 
-s3 = boto3.client('s3')
-bucket_name = 'taxi-data-hub'  
-
-def lambda_handler(event, context):
+def ingest_raw(s3, bucket_name):
     base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/'
     base_s3_prefix = 'raw/'  
 
     vehicles = ['yellow']
     years = ['2024']
     months = [f'{i:02}' for i in range(1, 13)]
+
+    print('Downloading raw files \n')
 
     for vehicle in vehicles:
         print(f"Processing vehicle: {vehicle} \n")
@@ -35,7 +31,3 @@ def lambda_handler(event, context):
                     else:
                         raise 
 
-    return {
-        'statusCode': 200,
-        'body': 'Lambda completed.'
-    }
