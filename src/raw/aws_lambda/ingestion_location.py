@@ -1,12 +1,6 @@
-import requests
-import boto3
-import os
 from download_upload_s3 import download_and_upload_to_s3
 
-s3 = boto3.client('s3')
-bucket_name = 'taxi-data-hub'  
-
-def main():
+def ingest_location(s3, bucket_name):
    
     url = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv'
     base_s3_prefix = 'lockup_tables/' 
@@ -24,5 +18,3 @@ def main():
         download_and_upload_to_s3(url, s3, bucket_name, s3_key)
         
                
-if __name__ == '__main__':
-    main()
