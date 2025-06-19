@@ -6,7 +6,7 @@ from download_upload_s3 import download_and_upload_to_s3
 s3 = boto3.client('s3')
 bucket_name = 'taxi-data-hub'  
 
-def main():
+def lambda_handler(event, context):
     base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/'
     base_s3_prefix = 'raw/'  
 
@@ -28,11 +28,14 @@ def main():
                 try:
                     s3.head_object(Bucket=bucket_name, Key=s3_key)
                     print(f'{s3_key} already in S3, skipping. \n')
-                except s3.exceptions.ClientError:
-                    print(f'Downloading and uploading {s3_key}')
-                    download_and_upload_to_s3(url, s3, bucket_name, s3_key)
+                except s3.exceptions.ClientError as e:
+                    if e.response['Error']['Code'] == "404":
+                        print(f'Downloading and uploading {s3_key}')
+                        download_and_upload_to_s3(url, s3, bucket_name, s3_key)
+                    else:
+                        raise 
 
-
-if __name__ == '__main__':
-    print("Starting download and upload process")
-    main()
+    return {
+        'statusCode': 200,
+        'body': 'Lambda completed.'
+    }
