@@ -4,7 +4,7 @@ def ingest_raw(s3, bucket_name):
     base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/'
     base_s3_prefix = 'raw/'  
 
-    vehicles = ['yellow']
+    vehicles = ['green']
     years = ['2024']
     months = [f'{i:02}' for i in range(1, 13)]
 
