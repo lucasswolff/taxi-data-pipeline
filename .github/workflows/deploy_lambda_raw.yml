@@ -1,0 +1,42 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - dev  
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          cd src/raw/aws_lambda 
+          python3 -m venv venv
+          source venv/bin/activate
+          mkdir build
+          pip install -r aws_lambda_requirements.txt -t build
+          cp *.py build
+          cd build
+          zip -r ../lambda_package.zip .
+          cd ..
+          aws lambda update-function-code --function-name taxi_data_hub_lambda_ingestion_raw --zip-file fileb://lambda_package.zip
+
+      - name: Deploy to AWS Lambda
+        uses: aws-actions/aws-lambda-deploy@v1
+        with:
+          function-name: YOUR_LAMBDA_FUNCTION_NAME
+          zip-file: lambda_package.zip
+          aws-region: YOUR_REGION
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
