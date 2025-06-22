@@ -12,6 +12,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      LAMBDA_FUNCTION_NAME: ${{ github.ref == 'refs/heads/main' && 'taxi_data_hub_lambda_ingestion_prd' || 'taxi_data_hub_lambda_ingestion_dev' }}
+      S3_PREFIX: ${{ github.ref == 'refs/heads/main' && 'prd/raw/' || 'dev/raw/' }}
 
     steps:
       - name: Checkout code
@@ -25,7 +28,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN_PRD || secrets.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Install dependencies and package Lambda
@@ -43,13 +46,13 @@ jobs:
       - name: Deploy to AWS Lambda
         run: |
           aws lambda update-function-code \
-            --function-name taxi_data_hub_lambda_ingestion_raw \
+            --function-name $LAMBDA_FUNCTION_NAME \ 
             --zip-file fileb://src/raw/aws_lambda/lambda_package.zip
 
       - name: Invoke Lambda Function
         run: |
           aws lambda invoke \
-            --function-name taxi_data_hub_lambda_ingestion_raw \
+            --function-name $LAMBDA_FUNCTION_NAME \ 
             --invocation-type RequestResponse \
             --payload '{}' \
             response.json
