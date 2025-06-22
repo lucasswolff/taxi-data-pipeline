@@ -50,6 +50,9 @@ jobs:
             --function-name $LAMBDA_FUNCTION_NAME \
             --zip-file fileb://src/raw/aws_lambda/lambda_package.zip
 
+      - name: Wait before setting environment variables
+        run: sleep 15
+
       - name: Update Lambda Environment Variable
         run: |
           aws lambda update-function-configuration \
