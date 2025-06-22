@@ -55,6 +55,7 @@ jobs:
           aws lambda invoke \
             --function-name $LAMBDA_FUNCTION_NAME \
             --invocation-type RequestResponse \
+            --cli-binary-format raw-in-base64-out \
             --payload "{\"s3_prefix\": \"${S3_PREFIX}\"}" \
             response.json
 
