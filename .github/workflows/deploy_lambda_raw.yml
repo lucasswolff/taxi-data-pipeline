@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LAMBDA_FUNCTION_NAME: ${{ github.ref == 'refs/heads/main' && 'taxi_data_hub_lambda_ingestion_raw_prd' || 'taxi_data_hub_lambda_ingestion_raw_dev' }}
-      S3_PREFIX: ${{ github.ref == 'refs/heads/main' && 'prd/raw/' || 'dev/raw/' }}
+      S3_PREFIX: ${{ github.ref == 'refs/heads/main' && 'prd/' || 'dev/' }}
 
     steps:
       - name: Checkout code
