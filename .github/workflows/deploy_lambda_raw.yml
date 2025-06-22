@@ -55,7 +55,7 @@ jobs:
           aws lambda invoke \
             --function-name $LAMBDA_FUNCTION_NAME \
             --invocation-type RequestResponse \
-            --payload '{}' \
+            --payload '{\"s3_prefix\": \"$S3_PREFIX\"}' \
             response.json
 
           cat response.json

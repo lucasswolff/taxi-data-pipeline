@@ -1,8 +1,7 @@
 from download_upload_s3 import download_and_upload_to_s3
 
-def ingest_raw(s3, bucket_name):
+def ingest_raw(s3, bucket_name, base_s3_prefix):
     base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/'
-    base_s3_prefix = 'raw/'  
 
     vehicles = ['green']
     years = ['2024']
