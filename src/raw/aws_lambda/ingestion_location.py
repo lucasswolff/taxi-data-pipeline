@@ -3,9 +3,9 @@ from download_upload_s3 import download_and_upload_to_s3
 def ingest_location(s3, bucket_name, base_s3_prefix):
    
     url = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv'
-    base_s3_prefix = 'lockup_tables/' 
+    prefix = 'lockup_tables/'
     file_name = 'taxi_zone.csv'
-    s3_key = f'{base_s3_prefix}{file_name}'
+    s3_key = f'{base_s3_prefix}{prefix}{file_name}'
 
     print(f'Downloading location file')
 

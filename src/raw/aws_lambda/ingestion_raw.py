@@ -6,6 +6,7 @@ def ingest_raw(s3, bucket_name, base_s3_prefix):
     vehicles = ['green']
     years = ['2024']
     months = [f'{i:02}' for i in range(1, 13)]
+    prefix = 'raw/'
 
     print('Downloading raw files \n')
 
@@ -17,7 +18,7 @@ def ingest_raw(s3, bucket_name, base_s3_prefix):
                 
                 file_name = f'{vehicle}_tripdata_{year}-{month}.parquet'
                 url = base_url + file_name
-                s3_key = f'{base_s3_prefix}{vehicle}/{file_name}'
+                s3_key = f'{base_s3_prefix}{prefix}{vehicle}/{file_name}'
 
                 # skip upload if file exists in S3
                 try:

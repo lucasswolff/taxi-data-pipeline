@@ -8,7 +8,7 @@ s3 = boto3.client('s3')
 bucket_name = 'taxi-data-hub'  
 
 def lambda_handler(event, context):
-    base_s3_prefix = event.get('s3_prefix') or os.getenv('S3_PREFIX', 'dev/raw/') #if receives s3_prefix, uses it. Else, use from environment (dev/raw/ is the default)
+    base_s3_prefix = event.get('s3_prefix') or os.getenv('S3_PREFIX', 'dev/') #if receives s3_prefix, uses it. Else, use from environment (dev/ is the default)
 
     # download taxi zone location csv file
     ingest_location(s3, bucket_name, base_s3_prefix)
