@@ -50,6 +50,12 @@ jobs:
             --function-name $LAMBDA_FUNCTION_NAME \
             --zip-file fileb://src/raw/aws_lambda/lambda_package.zip
 
+      - name: Update Lambda Environment Variable
+        run: |
+          aws lambda update-function-configuration \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --environment "Variables={S3_PREFIX=${S3_PREFIX}}"
+
       - name: Invoke Lambda Function
         run: |
           aws lambda invoke \
