@@ -1,6 +1,6 @@
 from download_upload_s3 import download_and_upload_to_s3
 
-def ingest_location(s3, bucket_name):
+def ingest_location(s3, bucket_name, base_s3_prefix):
    
     url = 'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv'
     base_s3_prefix = 'lockup_tables/' 
