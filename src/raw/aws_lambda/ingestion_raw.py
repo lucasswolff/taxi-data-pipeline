@@ -11,7 +11,8 @@ def get_year_list():
     else: 
         year = current_year
 
-    year_list = [str(x) for x in range(2020, year + 1)]
+    first_year = 2022
+    year_list = [str(x) for x in range(first_year, year + 1)]
 
     return year_list
 
