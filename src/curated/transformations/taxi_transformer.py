@@ -52,7 +52,8 @@ class TransformerBase:
             coalesce(col('improvement_surcharge'), lit(0)) +
             coalesce(col('congestion_surcharge'), lit(0)) +
             coalesce(col('Airport_fee'), lit(0)) + 
-            coalesce(col('ehail_fee'), lit(0))
+            coalesce(col('ehail_fee'), lit(0)) + 
+            coalesce(col('cbd_congestion_fee'), lit(0))
         )
         return df
 
@@ -182,6 +183,7 @@ class TransformerBase:
             .withColumn('congestion_surcharge', coalesce(col('congestion_surcharge'), lit(0)))\
             .withColumn('Airport_fee', coalesce(col('Airport_fee'), lit(0)))\
             .withColumn('ehail_fee', coalesce(col('ehail_fee'), lit(0)))\
+            .withColumn('cbd_congestion_fee', coalesce(col('cbd_congestion_fee'), lit(0)))\
                 
                 
         # replace null locations, trip_type, RatecodeID, store_and_fwd_flag, payment_type
@@ -344,6 +346,7 @@ class TransformerBase:
             "congestion_surcharge": "congestion_surcharge",
             "Airport_fee": "airport_fee",
             'ehail_fee': 'ehail_fee',
+            'cbd_congestion_fee': 'cbd_congestion_fee',
             "total_amount": "total_amount",
             "trip_duration_min": "trip_duration_min",
             "miles_per_minute": "miles_per_minute",

@@ -56,6 +56,7 @@ def check_data_types(df):
         "congestion_surcharge": DoubleType,
         "airport_fee": DoubleType,
         "ehail_fee": DoubleType,
+        "cbd_congestion_fee": DoubleType,
         "total_amount": DoubleType,
         "trip_duration_min": DoubleType,
         "miles_per_minute": DoubleType,
@@ -77,7 +78,7 @@ def check_null(df):
                                   "dropoff_datetime", "dropoff_year", "dropoff_month", "dropoff_day", "pu_location_id", "pu_borough", "pu_zone", "pu_service_zone", 
                                   "do_location_id", "do_borough", "do_zone", "do_service_zone", "ratecode_id", "ratecode_desc", "payment_type", "payment_type_desc", 
                                   "store_and_fwd_flag", "passenger_count", "trip_distance", "fare_amount", "extra", "mta_tax", "tip_amount", "tolls_amount", 
-                                  "improvement_surcharge", "congestion_surcharge", "airport_fee", 'ehail_fee', "total_amount"]
+                                  "improvement_surcharge", "congestion_surcharge", "airport_fee", 'ehail_fee', 'cbd_congestion_fee', "total_amount"]
     
     null_counts = df.select([
         sum(col(c).isNull().cast("int")).alias(c) for c in not_nullable_columns_list

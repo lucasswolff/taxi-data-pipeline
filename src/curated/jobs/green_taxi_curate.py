@@ -16,7 +16,7 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     
     taxi = 'green'
     file_path = trans_mode.get_run_mode_files(run_mode, months, raw_folder_path, taxi) # get file path based on run parameters
-    df_green_raw = spark.read.parquet(*file_path) 
+    df_green_raw = spark.read.option("mergeSchema", "true").parquet(*file_path) 
     
     lockup_reader = ReadLockup()
     df_payment_type, df_ratecode, df_trip_type, df_taxi_zone = lockup_reader.read_lockup_tables(spark, lockup_folder_path)
