@@ -1,6 +1,12 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+running_on = 'AWS EMR' if 'HADOOP_CONF_DIR' in os.environ else 'local'
+
+if running_on == 'local':
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+
 from curated.utils.create_spark import create_spark_session
 from curated.transformations.taxi_transformer import TransformerBase, TransformerYellowGreen
 from curated.tests.test_curated_taxi import run_tests
@@ -38,7 +44,6 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     #### SAVE FILES
     print('Saving files...')
     
-    # use df_yellow.coalesce(2).write when in AWS
     
     if run_mode == 'full_load':
         df_yellow.coalesce(2).write \
@@ -61,11 +66,18 @@ if __name__ == '__main__':
 
     trans_mode = TransformMode()
     run_mode, months = trans_mode.parse_args()
-    
-    ### change it when in AWS
-    raw_folder_path = "sample_data/raw/yellow/"
-    lockup_folder_path = "lockup_tables/"
-    curated_folder_path = "sample_data/curated/yellow"
+
+
+    if running_on == 'local':
+        raw_folder_path = "sample_data/raw/yellow/"
+        lockup_folder_path = "lockup_tables/"
+        curated_folder_path = "sample_data/curated/yellow"
+        
+    else:
+        # mudar o path para secret
+        raw_folder_path = "s3://taxi-data-hub/dev/raw/yellow/"
+        lockup_folder_path = "s3://taxi-data-hub/dev/lockup_tables/"
+        curated_folder_path = "s3://taxi-data-hub/dev/curated/yellow/"
 
     main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path)
 

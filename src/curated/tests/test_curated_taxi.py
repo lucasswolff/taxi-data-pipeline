@@ -9,6 +9,7 @@ def run_tests(df):
     check_dupplicated(df)
     check_null(df)
 
+
 def check_columns_present(df):
     print('Testing if columns are present')
     
@@ -17,6 +18,7 @@ def check_columns_present(df):
     for column in columns_list: 
         assert column in df.columns, f"Missing '{column}'"
  
+
 def check_data_types(df):
     print('Testing data types')
     
@@ -71,6 +73,44 @@ def check_data_types(df):
         actual_type = dict(df.dtypes)[col_name]
         assert actual_type == expected_type().simpleString(), f"Column {col_name} expected {expected_type} but got {actual_type}"
                
+        
+def check_zero(df):
+    print('Testing for zeros')
+    
+    not_zero_columns_list = ["passenger_count"]
+    
+    zero_counts = df.select([
+        sum((col(c) == 0).cast("int")).alias(c) for c in not_zero_columns_list
+    ]).collect()[0].asDict()
+    
+    for col_name, zero_count in zero_counts.items():
+        assert zero_count == 0, f"Zero found in column: {col_name}"
+  
+
+def check_negative(df):
+    print('Testing for negatives')
+    
+    not_negative_columns_list = ["passenger_count", "trip_distance", "fare_amount", "total_amount"]
+    
+    negative_counts = df.select([
+        sum((col(c) < 0).cast("int")).alias(c) for c in not_negative_columns_list
+    ]).collect()[0].asDict()
+    
+    for col_name, negative_count in negative_counts.items():
+        assert negative_count == 0, f"Negative found in column: {col_name}"      
+
+
+def check_dupplicated(df):
+    print('Testing for duplicated data')
+    
+    key_cols = ['vendor_id', 'pickup_datetime', 'dropoff_datetime',
+                'trip_distance', 'fare_amount', 'pu_location_id', 'do_location_id']
+    
+    dup_count = df.groupBy(key_cols).count().filter('count > 1').count()
+    
+    assert dup_count == 0, f"{dup_count} duplicate rows found" 
+
+
 def check_null(df):
     print('Testing for nulls')
     
@@ -86,37 +126,3 @@ def check_null(df):
     
     for col_name, null_count in null_counts.items():
         assert null_count == 0, f"Null values found in column: {col_name}"
-        
-def check_zero(df):
-    print('Testing for zeros')
-    
-    not_zero_columns_list = ["passenger_count"]
-    
-    zero_counts = df.select([
-        sum((col(c) == 0).cast("int")).alias(c) for c in not_zero_columns_list
-    ]).collect()[0].asDict()
-    
-    for col_name, zero_count in zero_counts.items():
-        assert zero_count == 0, f"Zero found in column: {col_name}"
-  
-def check_negative(df):
-    print('Testing for negatives')
-    
-    negative_columns_list = ["passenger_count", "trip_distance", "fare_amount", "total_amount"]
-    
-    negative_counts = df.select([
-        sum((col(c) < 0).cast("int")).alias(c) for c in negative_columns_list
-    ]).collect()[0].asDict()
-    
-    for col_name, negative_count in negative_counts.items():
-        assert negative_count == 0, f"Negative found in column: {col_name}"      
-
-def check_dupplicated(df):
-    print('Testing for duplicated data')
-    
-    key_cols = ['vendor_id', 'pickup_datetime', 'dropoff_datetime',
-                'trip_distance', 'fare_amount', 'pu_location_id', 'do_location_id']
-    
-    dup_count = df.groupBy(key_cols).count().filter('count > 1').count()
-    
-    assert dup_count == 0, f"{dup_count} duplicate rows found" 
