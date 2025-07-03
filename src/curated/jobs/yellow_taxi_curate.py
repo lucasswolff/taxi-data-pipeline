@@ -21,7 +21,7 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     print('Reading files...')
     
     taxi = 'yellow'
-    file_path = trans_mode.get_run_mode_files(run_mode, months, raw_folder_path, taxi) # get file path based on run parameters
+    file_path = trans_mode.get_run_mode_local_files(run_mode, months, raw_folder_path, taxi, running_on) # get file path based on run parameters
     df_yellow_raw = spark.read.option("mergeSchema", "true").parquet(*file_path) 
     
     lockup_reader = ReadLockup()
@@ -43,20 +43,10 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     
     #### SAVE FILES
     print('Saving files...')
-    
-    
-    if run_mode == 'full_load':
-        df_yellow.coalesce(2).write \
+
+    df_yellow.coalesce(1).write \
             .partitionBy('file_year', 'file_month') \
             .mode('overwrite') \
-            .parquet(curated_folder_path)
-    
-    else: 
-        trans_mode.delete_parquet_folders(run_mode, months, curated_folder_path, raw_folder_path)
-        
-        df_yellow.coalesce(2).write \
-            .partitionBy('file_year', 'file_month') \
-            .mode('append') \
             .parquet(curated_folder_path)
     
         

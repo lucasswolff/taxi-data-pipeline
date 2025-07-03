@@ -23,7 +23,7 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     print('Reading files...')
     
     taxi = 'green'
-    file_path = trans_mode.get_run_mode_files(run_mode, months, raw_folder_path, taxi) # get file path based on run parameters
+    file_path = trans_mode.get_run_mode_local_files(run_mode, months, raw_folder_path, taxi, running_on) # get file path based on run parameters
     
     print('Reading Raw')
 
@@ -53,19 +53,10 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     
     #### SAVE FILES
     print('Saving files...')
-    
-    if run_mode == 'full_load':
-        df_green.coalesce(1).write \
+
+    df_green.coalesce(1).write \
             .partitionBy('file_year', 'file_month') \
             .mode('overwrite') \
-            .parquet(curated_folder_path)
-    
-    else: 
-        trans_mode.delete_parquet_folders(run_mode, months, curated_folder_path, raw_folder_path)
-        
-        df_green.coalesce(1).write \
-            .partitionBy('file_year', 'file_month') \
-            .mode('append') \
             .parquet(curated_folder_path)
 
     print('Successfully wrote files to Curated')
