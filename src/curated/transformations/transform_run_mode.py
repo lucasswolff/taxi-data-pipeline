@@ -1,32 +1,39 @@
 import sys
 import os
 import shutil
+from urllib.parse import urlparse
 from curated.utils.list_s3_files import list_s3_files
 
 class TransformMode():
     
     def parse_args(self):
+
+        ## get env (dev/prd) when running in AWS EMR
+        env  = sys.argv[1]
+
+        if env != 'prd':
+            env = 'dev' #make sure uses dev, regardless of what user types (except if it's prd)
         
-        # user provided only one parameter
-        if len(sys.argv) == 2: 
-            if sys.argv[1] == 'full_load':
-                run_mode = sys.argv[1]
+        # user provided only two parameter
+        if len(sys.argv) == 3: 
+            if sys.argv[2] == 'full_load':
+                run_mode = sys.argv[2]
                 months = 0 # placeholder. Won't be used
             else:
                 print('Invalid parameter.\nPlease use full_load, past_months or specific_month.')
                 print('If past_months provide the number of months (e.g. 3). If specific_month provide yyyymm (e.g. 202404)')
                 sys.exit(1)
         
-        # user provided 2 parameters
-        elif len(sys.argv) > 2:
-            run_mode = sys.argv[1]
+        # user provided 3 parameters
+        elif len(sys.argv) > 3:
+            run_mode = sys.argv[2]
             
-            if sys.argv[1] == 'full_load':
-                run_mode = sys.argv[1]
+            if sys.argv[2] == 'full_load':
+                run_mode = sys.argv[2]
                 months = 0 # placeholder. Won't be used
             else:
                 try:
-                    months = sys.argv[2]
+                    months = sys.argv[3]
                     months = int(months)
                 except IndexError:
                     print("Invalid argument value. When using past_months or specific_month provide an integer.")
@@ -41,8 +48,9 @@ class TransformMode():
         else:
             run_mode = 'past_months'
             months = 3
-            
-        return run_mode, months
+            env = 'dev'
+
+        return run_mode, months, env 
     
     def get_run_mode_local_files(self, run_mode, months, folder_path, taxi, running_on):
         # from function parameters, get files names for spark df 
