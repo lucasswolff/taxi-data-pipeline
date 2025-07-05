@@ -32,10 +32,9 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     
     transformer_yellow = TransformerYellowGreen()
     df_yellow = transformer_yellow.make_yellow_consistent(df_yellow_raw) # add columns with defaut values to be consistent with green taxi
-    
+
     transformer = TransformerBase()
     df_yellow = transformer.transform_df(df_yellow, df_payment_type, df_ratecode, df_trip_type, df_taxi_zone) 
-    
 
     #### TEST 
     run_tests(df_yellow)

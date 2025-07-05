@@ -1,0 +1,44 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      S3_PREFIX: ${{ github.ref == 'refs/heads/main' && 'prd/' || 'dev/' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN_PRD || secrets.AWS_ROLE_ARN_DEV }} 
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          cd src
+          rm curated.zip
+          zip -r curated.zip curated
+
+          aws s3 cp curated/jobs/green_taxi_curate.py s3://taxi-data-hub/jobs/$S3_PREFIX/green_taxi_curate.py
+          aws s3 cp curated/jobs/green_taxi_curate.py s3://taxi-data-hub/jobs/$S3_PREFIX/yellow_taxi_curate.py
+          aws s3 cp curated.zip s3://taxi-data-hub/jobs_dependencies/$S3_PREFIX/curated.zip
+
+
