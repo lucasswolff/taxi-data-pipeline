@@ -23,6 +23,7 @@ class TransformerBase:
         df = self.create_measures(df) #create measures like miles_per_hour, amount_per_min
         df = self.flag_outliers(df) #flag outliers based on criteria
         df = self.rename_reorder_df(df) #rename columns and reorder them
+        df =  self.change_datatype(df) #change columns datatype
         
         return df
     
@@ -52,7 +53,8 @@ class TransformerBase:
             coalesce(col('improvement_surcharge'), lit(0)) +
             coalesce(col('congestion_surcharge'), lit(0)) +
             coalesce(col('Airport_fee'), lit(0)) + 
-            coalesce(col('ehail_fee'), lit(0))
+            coalesce(col('ehail_fee'), lit(0)) + 
+            coalesce(col('cbd_congestion_fee'), lit(0))
         )
         return df
 
@@ -169,6 +171,7 @@ class TransformerBase:
                 when((col('passenger_count').isNull()) | (col('passenger_count') == 0), 1)
                 .otherwise(col('passenger_count'))
         )
+
         
         # replace null charges with zero
         df = df\
@@ -182,6 +185,7 @@ class TransformerBase:
             .withColumn('congestion_surcharge', coalesce(col('congestion_surcharge'), lit(0)))\
             .withColumn('Airport_fee', coalesce(col('Airport_fee'), lit(0)))\
             .withColumn('ehail_fee', coalesce(col('ehail_fee'), lit(0)))\
+            .withColumn('cbd_congestion_fee', coalesce(col('cbd_congestion_fee'), lit(0)))\
                 
                 
         # replace null locations, trip_type, RatecodeID, store_and_fwd_flag, payment_type
@@ -344,6 +348,7 @@ class TransformerBase:
             "congestion_surcharge": "congestion_surcharge",
             "Airport_fee": "airport_fee",
             'ehail_fee': 'ehail_fee',
+            'cbd_congestion_fee': 'cbd_congestion_fee',
             "total_amount": "total_amount",
             "trip_duration_min": "trip_duration_min",
             "miles_per_minute": "miles_per_minute",
@@ -363,6 +368,57 @@ class TransformerBase:
         df = df.select(*ordered_columns)
         return df
 
+    def change_datatype(self, df):
+        columns_to_cast = {
+            "vendor_id": "int",
+            "pickup_datetime": "timestamp",
+            "pickup_year": "int",
+            "pickup_month": "int",
+            "pickup_day": "int",
+            "dropoff_datetime": "timestamp",
+            "dropoff_year": "int",
+            "dropoff_month": "int",
+            "dropoff_day": "int",
+            "pu_location_id": "int",
+            "pu_borough": "string",
+            "pu_zone": "string",
+            "pu_service_zone": "string",
+            "do_location_id": "int",
+            "do_borough": "string",
+            "do_zone": "string",
+            "do_service_zone": "string",
+            "ratecode_id": "bigint",
+            "ratecode_desc": "string",
+            "payment_type": "bigint",
+            "payment_type_desc": "string",
+            "store_and_fwd_flag": "string",
+            "passenger_count": "bigint",
+            "trip_distance": "double",
+            "fare_amount": "double",
+            "extra": "double",
+            "mta_tax": "double",
+            "tip_amount": "double",
+            "tolls_amount": "double",
+            "improvement_surcharge": "double",
+            "congestion_surcharge": "double",
+            "airport_fee": "double",
+            "ehail_fee": "double",
+            "cbd_congestion_fee": "double",
+            "total_amount": "double",
+            "trip_duration_min": "double",
+            "miles_per_minute": "double",
+            "miles_per_hour": "double",
+            "trip_outlier_flag": "boolean",
+            "fare_amount_per_mile": "double",
+            "fare_amount_per_min": "double",
+            "fare_amount_outlier_flag": "boolean"
+        }
+
+        for col_name, dtype in columns_to_cast.items():
+            df = df.withColumn(col_name, col(col_name).cast(dtype))
+
+        return df
+
 
 class TransformerYellowGreen:
     def make_yellow_consistent(self, df):
@@ -372,6 +428,9 @@ class TransformerYellowGreen:
                 .withColumn('trip_type', lit(3))
         
         df = df.withColumnRenamed('tpep_pickup_datetime', 'pickup_datetime').withColumnRenamed('tpep_dropoff_datetime', 'dropoff_datetime')
+
+        if 'cbd_congestion_fee' not in df.columns:
+            df = df.withColumn('cbd_congestion_fee', lit(None).cast("double"))
         
         return df
     
@@ -380,5 +439,8 @@ class TransformerYellowGreen:
         df = df.withColumn('Airport_fee',  lit(None).cast(DoubleType()))
         
         df = df.withColumnRenamed('lpep_pickup_datetime', 'pickup_datetime').withColumnRenamed('lpep_dropoff_datetime', 'dropoff_datetime')
+
+        if 'cbd_congestion_fee' not in df.columns:
+            df = df.withColumn('cbd_congestion_fee', lit(None).cast("double"))
         
         return df

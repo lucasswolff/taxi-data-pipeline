@@ -1,6 +1,7 @@
 import sys
 import os
 import shutil
+from curated.utils.list_s3_files import list_s3_files
 
 class TransformMode():
     
@@ -43,7 +44,7 @@ class TransformMode():
             
         return run_mode, months
     
-    def get_run_mode_files(self, run_mode, months, folder_path, taxi):
+    def get_run_mode_local_files(self, run_mode, months, folder_path, taxi, running_on):
         # from function parameters, get files names for spark df 
         
         if run_mode == 'full_load':
@@ -53,11 +54,16 @@ class TransformMode():
         elif run_mode == 'past_months':
             if isinstance(months, int) and months > 0 and months < 300:
                 print(f'Run mode: load past {months} months')
-                
-                files = sorted(os.listdir(folder_path))
-                last_three = files[-months:]
-                
-                file_path = [os.path.join(folder_path, f) for f in last_three]
+
+                if running_on == 'local':
+                    files = sorted(os.listdir(folder_path))
+                    last_n = files[-months:]
+                    
+                    file_path = [os.path.join(folder_path, f) for f in last_n]
+
+                else:
+                    file_path = list_s3_files(months, folder_path)
+                    
             else:
                 print('Invalid parameter.\nPlease, when using past_months, provide an int bigger between zero and 300.')
                 sys.exit(1)
@@ -82,32 +88,3 @@ class TransformMode():
         
         return file_path
 
-    def delete_parquet_folders(self, run_mode, months, curated_folder_path, raw_folder_path):
-        if run_mode == 'specific_month':
-            year = str(months)[:4]
-            month = str(months)[-2:]
-
-            folder_path = curated_folder_path + '/file_year=' + year + '/file_month=' + month
-
-            # Check if the folder exists and deletes it
-            if os.path.exists(folder_path):
-                shutil.rmtree(folder_path)
-                print(f"Deleted partition: {folder_path}")
-            else:
-                print(f"Partition does not exist: {folder_path}")
-                
-        else: # run_mode = past_months
-                files = sorted(os.listdir(raw_folder_path))
-                last_three_files = files[-months:]
-                
-                for file in last_three_files:
-                    year, month = file.split('_')[2].replace('.parquet', '').split('-')
-                    
-                    folder_path = curated_folder_path + '/file_year=' + year + '/file_month=' + month
-                    
-                    # Check if the folder exists and delete it
-                    if os.path.exists(folder_path):
-                        shutil.rmtree(folder_path)
-                        print(f"Deleted partition: {folder_path}")
-                    else:
-                        print(f"Partition does not exist: {folder_path}")

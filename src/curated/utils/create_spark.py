@@ -1,11 +1,12 @@
 from pyspark.sql import SparkSession
-import pytest
 
 def create_spark_session(app_name):
     spark = SparkSession.builder \
         .appName(app_name) \
-        .config("spark.driver.memory", "8g") \
         .getOrCreate()
+    
+    spark.sparkContext.setLogLevel("ERROR")
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
         
     return spark
 
