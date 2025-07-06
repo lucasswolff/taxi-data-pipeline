@@ -54,19 +54,19 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
 if __name__ == '__main__':
 
     trans_mode = TransformMode()
-    run_mode, months = trans_mode.parse_args()
-
+    run_mode, months, env = trans_mode.parse_args()
 
     if running_on == 'local':
         raw_folder_path = "sample_data/raw/yellow/"
         lockup_folder_path = "lockup_tables/"
         curated_folder_path = "sample_data/curated/yellow"
         
-    else:
-        # mudar o path para secret
-        raw_folder_path = "s3://taxi-data-hub/dev/raw/yellow/"
-        lockup_folder_path = "s3://taxi-data-hub/dev/lockup_tables/"
-        curated_folder_path = "s3://taxi-data-hub/dev/curated/yellow/"
+    else: #runnig on AWS
+        print(f"Detected environment: {env}")
+
+        raw_folder_path = f"s3://taxi-data-hub/{env}/raw/yellow/"
+        lockup_folder_path = f"s3://taxi-data-hub/{env}/lockup_tables/"
+        curated_folder_path = f"s3://taxi-data-hub/{env}/curated/yellow/"
 
     main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path)
 

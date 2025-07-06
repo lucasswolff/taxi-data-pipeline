@@ -25,6 +25,8 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     taxi = 'green'
     file_path = trans_mode.get_run_mode_local_files(run_mode, months, raw_folder_path, taxi, running_on) # get file path based on run parameters
     
+    print(f'File path: {file_path}')
+
     print('Reading Raw')
 
     df_green_raw = spark.read.option("mergeSchema", "true").parquet(*file_path)
@@ -64,18 +66,23 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
 if __name__ == '__main__':
 
     trans_mode = TransformMode()
-    run_mode, months = trans_mode.parse_args()
-    
+    run_mode, months, env = trans_mode.parse_args()
 
     if running_on == 'local':
         raw_folder_path = "sample_data/raw/green/"
         lockup_folder_path = "lockup_tables/"
         curated_folder_path = "sample_data/curated/green"
         
-    else:
-        raw_folder_path = "s3://taxi-data-hub/dev/raw/green/"
-        lockup_folder_path = "s3://taxi-data-hub/dev/lockup_tables/"
-        curated_folder_path = "s3://taxi-data-hub/dev/curated/green/"
+    else: #runnig on AWS
+        print(f"Detected environment: {env}")
+
+        raw_folder_path = f"s3://taxi-data-hub/{env}/raw/green/"
+        lockup_folder_path = f"s3://taxi-data-hub/{env}/lockup_tables/"
+        curated_folder_path = f"s3://taxi-data-hub/{env}/curated/green/"
+
+        print(raw_folder_path)
+        print(lockup_folder_path)
+        print(curated_folder_path)
 
     main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path)
 
