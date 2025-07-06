@@ -13,7 +13,7 @@ from curated.tests.test_curated_taxi import run_tests
 from curated.utils.read_lockup_tables import ReadLockup
 from curated.transformations.transform_run_mode import TransformMode
 
-def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path):
+def run_yellow_taxi_curate(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path):
     #### CREATE SPARK
     spark = create_spark_session(app_name="curated_layer")
     
@@ -50,24 +50,3 @@ def main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, cura
     
         
     print('Successfully wrote files to Curated')
-    
-if __name__ == '__main__':
-
-    trans_mode = TransformMode()
-    run_mode, months, env = trans_mode.parse_args()
-
-    if running_on == 'local':
-        raw_folder_path = "sample_data/raw/yellow/"
-        lockup_folder_path = "lockup_tables/"
-        curated_folder_path = "sample_data/curated/yellow"
-        
-    else: #runnig on AWS
-        print(f"Detected environment: {env}")
-
-        raw_folder_path = f"s3://taxi-data-hub/{env}/raw/yellow/"
-        lockup_folder_path = f"s3://taxi-data-hub/{env}/lockup_tables/"
-        curated_folder_path = f"s3://taxi-data-hub/{env}/curated/yellow/"
-
-    main(run_mode, months, trans_mode, raw_folder_path, lockup_folder_path, curated_folder_path)
-
-
