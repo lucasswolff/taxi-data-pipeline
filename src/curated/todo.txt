@@ -1,8 +1,0 @@
-create tests
-    column is present ✔
-    not null
-    duplicated data 
-    wrong data types 
-    negative or zero data
-replicate to green taxi
-start shift to AWS

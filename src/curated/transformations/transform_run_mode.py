@@ -14,26 +14,30 @@ class TransformMode():
         if env != 'prd':
             env = 'dev' #make sure uses dev, regardless of what user types (except if it's prd)
         
-        # user provided only two parameter
-        if len(sys.argv) == 3: 
-            if sys.argv[2] == 'full_load':
-                run_mode = sys.argv[2]
+
+        # get which jobs to run
+        jobs = sys.argv[2]
+
+        # user provided only three parameters
+        if len(sys.argv) == 4: 
+            if sys.argv[3] == 'full_load':
+                run_mode = sys.argv[3]
                 months = 0 # placeholder. Won't be used
             else:
                 print('Invalid parameter.\nPlease use full_load, past_months or specific_month.')
                 print('If past_months provide the number of months (e.g. 3). If specific_month provide yyyymm (e.g. 202404)')
                 sys.exit(1)
         
-        # user provided 3 parameters
-        elif len(sys.argv) > 3:
-            run_mode = sys.argv[2]
+        # user provided 4 parameters
+        elif len(sys.argv) > 4:
+            run_mode = sys.argv[3]
             
-            if sys.argv[2] == 'full_load':
+            if sys.argv[3] == 'full_load':
                 run_mode = sys.argv[2]
                 months = 0 # placeholder. Won't be used
             else:
                 try:
-                    months = sys.argv[3]
+                    months = sys.argv[4]
                     months = int(months)
                 except IndexError:
                     print("Invalid argument value. When using past_months or specific_month provide an integer.")
@@ -49,8 +53,9 @@ class TransformMode():
             run_mode = 'past_months'
             months = 3
             env = 'dev'
+            jobs = 'both'
 
-        return run_mode, months, env 
+        return env, jobs, run_mode, months 
     
     def get_run_mode_local_files(self, run_mode, months, folder_path, taxi, running_on):
         # from function parameters, get files names for spark df 

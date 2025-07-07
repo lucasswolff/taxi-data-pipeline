@@ -14,7 +14,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      S3_PREFIX: ${{ github.ref == 'refs/heads/main' && 'prd' || 'dev' }}
+      ENV: ${{ github.ref == 'refs/heads/main' && 'prd' || 'dev' }}
+      LAMBDA_FUNCTION_NAME: ${{ github.ref == 'refs/heads/main' && 'taxi_data_hub_create_emr_curated_prd' || 'taxi_data_hub_create_emr_curated_dev' }}
 
     steps:
       - name: Checkout code
@@ -36,8 +37,22 @@ jobs:
           cd src
           zip -r curated.zip curated
 
-          aws s3 cp curated/jobs/green_taxi_curate.py s3://taxi-data-hub/jobs/$S3_PREFIX/green_taxi_curate.py
-          aws s3 cp curated/jobs/green_taxi_curate.py s3://taxi-data-hub/jobs/$S3_PREFIX/yellow_taxi_curate.py
-          aws s3 cp curated.zip s3://taxi-data-hub/jobs_dependencies/$S3_PREFIX/curated.zip
+          aws s3 cp curated/jobs/run_yellow_green_curate.py s3://taxi-data-hub/jobs/$ENV/run_yellow_green_curate.py
+          aws s3 cp curated.zip s3://taxi-data-hub/jobs_dependencies/$ENV/curated.zip
 
+      - name: Deploy to AWS Lambda
+        run: |
+          zip -j lambda.zip src/curated/jobs/lambda_function.py
 
+          aws lambda update-function-code \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --zip-file fileb://lambda.zip
+
+      - name: Wait before setting environment variables
+        run: sleep 15
+
+      - name: Update Lambda Environment Variable
+        run: |
+          aws lambda update-function-configuration \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --environment "Variables={ENV=${ENV}}"
