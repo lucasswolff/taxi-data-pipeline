@@ -42,6 +42,7 @@ jobs:
 
       - name: Deploy to AWS Lambda
         run: |
+          cd src
           zip lambda.zip curated/jobs/lambda_function.py
 
           aws lambda update-function-code \
