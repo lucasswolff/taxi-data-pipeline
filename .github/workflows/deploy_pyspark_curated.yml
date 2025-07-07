@@ -45,7 +45,7 @@ jobs:
           zip -j lambda.zip src/curated/jobs/lambda_function.py
 
           aws lambda update-function-code \
-            --function-name $LAMBDA_FUNCTION_NAME \ 
+            --function-name $LAMBDA_FUNCTION_NAME \
             --zip-file fileb://lambda.zip
 
       - name: Wait before setting environment variables
