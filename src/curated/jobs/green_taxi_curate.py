@@ -62,4 +62,3 @@ def run_green_taxi_curate(run_mode, months, trans_mode, raw_folder_path, lockup_
             .parquet(curated_folder_path)
 
     print('Successfully wrote files to Curated')
- 
