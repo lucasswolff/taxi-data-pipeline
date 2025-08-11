@@ -27,6 +27,7 @@ In the cloud this is done using AWS EMR which is spinned up by CLI commands. The
 • past_monhts: take a positive int parameter. E.g. past_monhts 3 will load the data from the past 3 months of available data. The spark job will overwrite the previous data with the new, so in cases of update in the sourc for past data, the curated layer will be updated as well. And will insert the new data if not available in curated yet. 
 • specific_month: take a yyyymm parameter. E.g. 202501 will overwrite the 2025 January data in the curated layer, or insert with not available yet. 
 
+
 # PROJECT STRUCTURE
 
 ```
