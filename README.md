@@ -1,7 +1,7 @@
 # OVERVIEW
 This project builds a complete data pipeline using open data from the New York City Trip Record Data. The data consists of Yellow and Green Taxis, FHV (For-Hire Vehicles), and HVFHV (High Volume For-Hire Vehicles, such as Uber, Lyft, etc.). The data can be found at https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page#
 
-The goal of this project is to provide users with curated data and metrics related to Ride services in New York. The data can be used for dashboards, analytics, and data science applications. Plus, the project serves as a guide on how to structure an end-to-end solution leveraging open-source tools and cloud services.
+The goal of this project is to provide users with curated data and metrics related to Ride services in New York. The data can be used for dashboards, analytics, and data science applications. Plus, the project serves as a guide on how to structure an end-to-end solution leveraging open-source tools and cloud services. And to showcase how spark can be used for massive data processing. 
 
 # DATA ARCHITECTURE
 
@@ -43,3 +43,4 @@ sample_data/
 lockup_tables/        # Reference tables (e.g., payment types, rate codes)
 notebooks/            # Jupyter Notebooks used for data exploration
 ```
+
